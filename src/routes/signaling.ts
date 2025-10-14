@@ -10,8 +10,9 @@ import type {
   GetPeersResponse,
   CompleteRequest,
   TurnCredentialsResponse,
-  PeerData
-} from 'hades-shared';
+  PeerData,
+  PeerInfo
+} from '../types.js';
 
 const router = express.Router();
 

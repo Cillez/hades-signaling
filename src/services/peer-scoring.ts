@@ -1,4 +1,4 @@
-import type { PeerData, PeerScore } from 'hades-shared';
+import type { PeerData, PeerScore } from '../types.js';
 
 /**
  * Score peers based on multiple factors:
