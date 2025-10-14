@@ -94,20 +94,21 @@ router.post('/peers', async (req: AuthRequest, res) => {
       excludePeers = []
     } = req.body as GetPeersRequest;
 
-    console.log(`[Peers] Request for manifest: ${manifestId}, needed chunks: ${neededChunks?.slice(0, 5)}, region: ${region}`);
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1); // HH:MM:SS.mmm
+    console.log(`[${timestamp}] [Peers] Request for manifest: ${manifestId}, needed chunks: ${neededChunks?.slice(0, 5)}, region: ${region}`);
 
     if (!manifestId || !neededChunks) {
-      console.error('[Peers] Missing required fields');
+      console.error(`[${timestamp}] [Peers] Missing required fields`);
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const peersSetKey = PEERS_SET_KEY(manifestId);
     const peerIds = await redis.smembers(peersSetKey);
 
-    console.log(`[Peers] Found ${peerIds.length} registered peers for ${manifestId}:`, peerIds);
+    console.log(`[${timestamp}] [Peers] Found ${peerIds.length} registered peers for ${manifestId}:`, peerIds);
 
     if (peerIds.length === 0) {
-      console.log('[Peers] No peers registered, returning empty list');
+      console.log(`[${timestamp}] [Peers] No peers registered, returning empty list`);
       const response: GetPeersResponse = {
         peers: [],
         count: 0
@@ -137,7 +138,8 @@ router.post('/peers', async (req: AuthRequest, res) => {
     const scores = peersData.map(peer => scorePeer(peer, neededChunks, region));
     const sortedScores = sortPeersByScore(scores);
 
-    console.log(`[Peers] Scored ${scores.length} peers:`, scores.map(s => ({
+    const timestamp2 = new Date().toISOString().split('T')[1].slice(0, -1);
+    console.log(`[${timestamp2}] [Peers] Scored ${scores.length} peers:`, scores.map(s => ({
       id: s.peerId,
       score: s.score,
       hasNeeded: s.hasNeeded
@@ -156,7 +158,7 @@ router.post('/peers', async (req: AuthRequest, res) => {
       };
     });
 
-    console.log(`[Peers] Returning ${peers.length} top peers`);
+    console.log(`[${timestamp2}] [Peers] Returning ${peers.length} top peers`);
 
     const response: GetPeersResponse = {
       peers,
