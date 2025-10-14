@@ -75,13 +75,15 @@ app.use('/api/announce', announceLimiter);
 // Body parsing (increased limit for large bitfields)
 app.use(express.json({ limit: '1mb' }));
 
-// Request logging
+// Request logging (errors only)
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    const logLevel = res.statusCode >= 400 ? 'ERROR' : 'INFO';
-    console.log(`[${logLevel}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    // Only log errors and important endpoints
+    if (res.statusCode >= 400) {
+      const duration = Date.now() - start;
+      console.error(`[ERROR] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    }
   });
   next();
 });

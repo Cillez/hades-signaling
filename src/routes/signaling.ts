@@ -22,8 +22,6 @@ const MAX_PEERS_RESPONSE = parseInt(process.env.MAX_PEERS_RESPONSE || '6', 10);
 // POST /announce - Register/update peer presence
 router.post('/announce', async (req: AuthRequest, res) => {
   try {
-    console.log('[Announce] Received request, body type:', typeof req.body, 'keys:', Object.keys(req.body || {}));
-    
     const {
       clientId,
       manifestId,
@@ -39,9 +37,7 @@ router.post('/announce', async (req: AuthRequest, res) => {
       console.error('[Announce] Validation failed:', { 
         hasClientId: !!clientId, 
         hasManifestId: !!manifestId, 
-        hasChunkBitfield: !!chunkBitfield,
-        bitfieldLength: chunkBitfield?.length || 0,
-        bodyKeys: Object.keys(req.body || {})
+        hasChunkBitfield: !!chunkBitfield
       });
       return res.status(400).json({ error: 'Missing required fields', details: { clientId: !!clientId, manifestId: !!manifestId, chunkBitfield: !!chunkBitfield } });
     }
@@ -90,14 +86,20 @@ router.post('/peers', async (req: AuthRequest, res) => {
       excludePeers = []
     } = req.body as GetPeersRequest;
 
+    console.log(`[Peers] Request for manifest: ${manifestId}, needed chunks: ${neededChunks?.slice(0, 5)}, region: ${region}`);
+
     if (!manifestId || !neededChunks) {
+      console.error('[Peers] Missing required fields');
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const peersSetKey = PEERS_SET_KEY(manifestId);
     const peerIds = await redis.smembers(peersSetKey);
 
+    console.log(`[Peers] Found ${peerIds.length} registered peers for ${manifestId}`);
+
     if (peerIds.length === 0) {
+      console.log('[Peers] No peers registered, returning empty list');
       const response: GetPeersResponse = {
         peers: [],
         count: 0
@@ -125,6 +127,12 @@ router.post('/peers', async (req: AuthRequest, res) => {
     const scores = peersData.map(peer => scorePeer(peer, neededChunks, region));
     const sortedScores = sortPeersByScore(scores);
 
+    console.log(`[Peers] Scored ${scores.length} peers:`, scores.map(s => ({
+      id: s.peerId.substring(0, 15),
+      score: s.score,
+      hasNeeded: s.hasNeeded
+    })));
+
     // Return top N peers
     const topPeers = sortedScores.slice(0, MAX_PEERS_RESPONSE);
     
@@ -137,6 +145,8 @@ router.post('/peers', async (req: AuthRequest, res) => {
         score: scored.score
       };
     });
+
+    console.log(`[Peers] Returning ${peers.length} top peers`);
 
     const response: GetPeersResponse = {
       peers,
@@ -201,13 +211,12 @@ router.get('/turn', async (req: AuthRequest, res) => {
 // POST /signal - WebRTC signaling relay
 router.post('/signal', async (req: AuthRequest, res) => {
   try {
-    console.log('[Signal] Received signal request, body:', JSON.stringify(req.body).substring(0, 200));
     const { type, to, data } = req.body;
     const from = req.user?.userId || req.user?.username || 'unknown';
 
     if (!type || !to) {
-      console.error('[Signal] Validation failed:', { hasType: !!type, hasTo: !!to, hasData: data !== undefined });
-      return res.status(400).json({ error: 'Missing required fields: type, to', received: { type: !!type, to: !!to, hasData: data !== undefined } });
+      console.error('[Signal] Validation failed:', { hasType: !!type, hasTo: !!to });
+      return res.status(400).json({ error: 'Missing required fields: type, to' });
     }
 
     if (!['offer', 'answer', 'ice-candidate'].includes(type)) {
