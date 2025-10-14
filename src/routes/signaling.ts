@@ -59,9 +59,17 @@ router.post('/announce', async (req: AuthRequest, res) => {
       isComplete: false
     };
 
+    // Store peer data with TTL
     await redis.setex(peerKey, PEER_TTL, JSON.stringify(peerData));
     await redis.sadd(peersSetKey, peerId);
-    await redis.expire(peersSetKey, PEER_TTL + 60); // Keep set slightly longer
+    
+    // Set or extend expiry on the peers set
+    // Use max TTL of current and new to avoid premature expiry
+    const currentTTL = await redis.ttl(peersSetKey);
+    const newTTL = PEER_TTL;
+    if (currentTTL === -1 || currentTTL < newTTL) {
+      await redis.expire(peersSetKey, newTTL);
+    }
 
     const response: AnnounceResponse = {
       success: true,
@@ -107,7 +115,7 @@ router.post('/peers', async (req: AuthRequest, res) => {
       return res.json(response);
     }
 
-    // Fetch peer data
+    // Fetch peer data and clean up expired peers from the set
     const peerDataPromises = peerIds
       .filter(pid => !excludePeers.includes(pid))
       .map(async (peerId) => {
@@ -116,6 +124,8 @@ router.post('/peers', async (req: AuthRequest, res) => {
         if (data) {
           return JSON.parse(data) as PeerData;
         }
+        // Peer key expired, remove from set
+        await redis.srem(peersSetKey, peerId);
         return null;
       });
 
