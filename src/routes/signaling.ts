@@ -96,7 +96,7 @@ router.post('/peers', async (req: AuthRequest, res) => {
     const peersSetKey = PEERS_SET_KEY(manifestId);
     const peerIds = await redis.smembers(peersSetKey);
 
-    console.log(`[Peers] Found ${peerIds.length} registered peers for ${manifestId}`);
+    console.log(`[Peers] Found ${peerIds.length} registered peers for ${manifestId}:`, peerIds);
 
     if (peerIds.length === 0) {
       console.log('[Peers] No peers registered, returning empty list');
@@ -128,7 +128,7 @@ router.post('/peers', async (req: AuthRequest, res) => {
     const sortedScores = sortPeersByScore(scores);
 
     console.log(`[Peers] Scored ${scores.length} peers:`, scores.map(s => ({
-      id: s.peerId.substring(0, 15),
+      id: s.peerId,
       score: s.score,
       hasNeeded: s.hasNeeded
     })));
