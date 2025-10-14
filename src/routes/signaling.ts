@@ -223,12 +223,13 @@ router.get('/turn', async (req: AuthRequest, res) => {
 // POST /signal - WebRTC signaling relay
 router.post('/signal', async (req: AuthRequest, res) => {
   try {
-    const { type, to, data } = req.body;
-    const from = req.user?.userId || req.user?.username || 'unknown';
+    const { type, to, from: bodyFrom, data } = req.body;
+    // Use clientId from body if provided, otherwise fall back to user ID
+    const from = bodyFrom || req.user?.userId || req.user?.username || 'unknown';
 
-    if (!type || !to) {
-      console.error('[Signal] Validation failed:', { hasType: !!type, hasTo: !!to });
-      return res.status(400).json({ error: 'Missing required fields: type, to' });
+    if (!type || !to || !from) {
+      console.error('[Signal] Validation failed:', { hasType: !!type, hasTo: !!to, hasFrom: !!from });
+      return res.status(400).json({ error: 'Missing required fields: type, to, from' });
     }
 
     if (!['offer', 'answer', 'ice-candidate'].includes(type)) {
