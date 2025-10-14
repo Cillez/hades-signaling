@@ -52,18 +52,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting
+// Rate limiting - Very relaxed for P2P (signal polling happens every second)
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  message: 'Too many requests',
+  windowMs: 60 * 1000, // 1 minute
+  max: 10000, // 10000 requests per minute (allows ~166 req/sec)
+  message: { error: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false
 });
 
 const announceLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 200, // 200 announces per minute per IP (for multiple patches)
+  max: 500, // 500 announces per minute per IP (for multiple patches + re-announces)
   message: { error: 'Too many announce requests' },
   standardHeaders: true,
   legacyHeaders: false
