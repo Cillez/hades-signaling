@@ -126,6 +126,7 @@ router.post('/peers', async (req: AuthRequest, res) => {
           return JSON.parse(data) as PeerData;
         }
         // Peer key expired, remove from set
+        console.log(`[Peers] Peer ${peerId} key expired, removing from set`);
         await redis.srem(peersSetKey, peerId);
         return null;
       });
@@ -133,6 +134,8 @@ router.post('/peers', async (req: AuthRequest, res) => {
     const peersData = (await Promise.all(peerDataPromises)).filter(
       (p): p is PeerData => p !== null
     );
+    
+    console.log(`[Peers] Valid peer data fetched: ${peersData.length}/${peerIds.length}`);
 
     // Score and sort peers
     const scores = peersData.map(peer => scorePeer(peer, neededChunks, region));
