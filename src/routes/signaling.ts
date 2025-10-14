@@ -121,12 +121,14 @@ router.post('/peers', async (req: AuthRequest, res) => {
       .filter(pid => !excludePeers.includes(pid))
       .map(async (peerId) => {
         const peerKey = PEER_KEY(manifestId, peerId);
+        console.log(`[Peers] Checking key: ${peerKey}`);
         const data = await redis.get(peerKey);
         if (data) {
+          console.log(`[Peers] ✅ Found data for ${peerId.substring(0, 8)}`);
           return JSON.parse(data) as PeerData;
         }
         // Peer key expired, remove from set
-        console.log(`[Peers] Peer ${peerId} key expired, removing from set`);
+        console.log(`[Peers] ❌ No data for ${peerId.substring(0, 8)} at key ${peerKey}, removing from set`);
         await redis.srem(peersSetKey, peerId);
         return null;
       });
