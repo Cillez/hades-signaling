@@ -47,12 +47,14 @@ export async function cleanupExpiredPeers(): Promise<void> {
     for (const setKey of keys) {
       const members = await redis.smembers(setKey);
       for (const peerId of members) {
-        const manifestId = setKey.split(':')[1];
+        // Extract manifestId from key: "peers:patch-9:20251014-2142" -> "patch-9:20251014-2142"
+        const manifestId = setKey.replace('peers:', '');
         const peerKey = PEER_KEY(manifestId, peerId);
         const exists = await redis.exists(peerKey);
         
         if (!exists) {
           // Remove from set if peer data expired
+          console.log(`[Cleanup] Removing expired peer ${peerId} from ${manifestId}`);
           await redis.srem(setKey, peerId);
         }
       }
