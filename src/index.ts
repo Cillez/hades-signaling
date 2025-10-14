@@ -22,7 +22,7 @@ if (missingVars.length > 0) {
 console.log('✅ Environment variables validated');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = parseInt(process.env.PORT || '3002', 10);
 
 // Trust proxy
 app.set('trust proxy', 1);
@@ -109,10 +109,10 @@ async function startServer() {
     console.log('🔌 Testing Redis connection...');
     await testRedisConnection();
     
-    // Start HTTP server
-    app.listen(PORT, () => {
+    // Start HTTP server on all interfaces (0.0.0.0)
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Signaling server running on port ${PORT}`);
-      console.log(`🌐 API available at http://localhost:${PORT}/api`);
+      console.log(`🌐 API available at http://0.0.0.0:${PORT}/api`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err);
